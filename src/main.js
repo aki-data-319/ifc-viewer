@@ -9,21 +9,35 @@ const canvas = document.getElementById('three-canvas');
 const scene = new THREE.Scene();
 // ①-1 デバッグ用に window にぶら下げる
 window.scene = scene;
-
 scene.background = new THREE.Color(0xeeeeee);
 
-// === 3. カメラ作成 ===
+
+// === 3. AmbientLight作成＆追加 ===
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+scene.add(ambientLight);
+
+// === 4. グリッドヘルパー作成＆追加 ===
+const gridHelper = new THREE.GridHelper(10, 10);
+scene.add(gridHelper);
+
+// === 4-1. 座標軸作成＆追加 ===
+const axesHelper = new THREE.AxesHelper(10);
+scene.add(axesHelper);
+
+
+
+// === 5. カメラ作成 ===
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight
 };
 // カメラを斜め上から原点を見る位置に配置
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000);
-camera.position.set(0, 0, 5); // X=0, Y=0, Z=5
+camera.position.set(10, 10, 20); // X=0, Y=0, Z=5
 camera.lookAt(0, 0, 0); // 必ず原点を向かせる
 scene.add(camera);
 
-// === 4. レンダラー作成 ===
+// === 6. レンダラー作成 ===
 const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(sizes.width, sizes.height);
 renderer.setPixelRatio(window.devicePixelRatio);
@@ -32,7 +46,7 @@ window.renderer = renderer;
 
 renderer.render(scene, camera);
 
-// === 5. リサイズ対応 ===
+// === 7. リサイズ対応 ===
 window.addEventListener('resize', () => {
   sizes.width = window.innerWidth;
   sizes.height = window.innerHeight;
