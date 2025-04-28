@@ -1,6 +1,7 @@
 // src/main.js
 import * as THREE from 'three';
 import { createCube } from './cube';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 // === 1. Canvas取得 ===
 const canvas = document.getElementById('three-canvas');
@@ -44,6 +45,10 @@ renderer.setPixelRatio(window.devicePixelRatio);
 // ②-1 デバッグ用に window にぶら下げる
 window.renderer = renderer;
 
+// OrbitControlsを初期化する。カメラとcanvasを渡して。カメラを回転・ズーム・パンできるようにするツール
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; // 慣性効果を有効化
+
 renderer.render(scene, camera);
 
 // === 7. リサイズ対応 ===
@@ -66,8 +71,9 @@ scene.add(cube);
 function animate() {
   requestAnimationFrame(animate);
   // キューブを回転させる
-  cube.rotation.x += 0.02;
+  cube.rotation.x += 0.03;
   cube.rotation.y += 0.01;
+  controls.update();
   renderer.render(scene, camera);
 }
 animate();
