@@ -1,5 +1,6 @@
 // src/main.js
 import * as THREE from 'three';
+import { createCube } from './cube';
 
 // === 1. Canvas取得 ===
 const canvas = document.getElementById('three-canvas');
@@ -16,8 +17,10 @@ const sizes = {
   width: window.innerWidth,
   height: window.innerHeight
 };
+// カメラを斜め上から原点を見る位置に配置
 const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000);
-camera.position.set(3, 3, 3);
+camera.position.set(0, 0, 5); // X=0, Y=0, Z=5
+camera.lookAt(0, 0, 0); // 必ず原点を向かせる
 scene.add(camera);
 
 // === 4. レンダラー作成 ===
@@ -42,17 +45,14 @@ window.addEventListener('resize', () => {
 });
 
 // === これ以降は立方体の作成をしているだけ ===
-
-const geometry = new THREE.BoxGeometry();
-const material = new THREE.MeshBasicMaterial({ color: 0x30aaff });
-const cube = new THREE.Mesh(geometry, material);
+const cube = createCube();
 scene.add(cube);
 
-camera.position.z = 5;
-
+// === アニメーションループ ===
 function animate() {
   requestAnimationFrame(animate);
-  cube.rotation.x += 0.01;
+  // キューブを回転させる
+  cube.rotation.x += 0.02;
   cube.rotation.y += 0.01;
   renderer.render(scene, camera);
 }

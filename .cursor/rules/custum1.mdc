@@ -1,0 +1,199 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+## プロジェクトの背景
+
+現在、建設現場の作業員がTekla Structuresで作成したモデルをタブレットで閲覧する際、部材情報の確認が困難な課題があります。既存のビューワーではマークアップ機能を使っても画面切り替え時に情報が消えてしまうという問題があり、部材または製品を選択したときに、その部材名・製品名が3Dビュー上に表示される独自のIFCビューワーが必要とされています。
+
+## 必要最低限の機能
+
+### コア機能
+
+- IFCファイルの読み込み（IFC2x3, IFC4形式対応）
+- 3Dモデルの表示と基本的な視点操作（回転、パン、ズーム）
+- 部材/製品を選択したときに、その部材名・製品名を3Dビュー上に表示
+- 視点変更後も選択した部材の情報表示が維持される
+- 表示情報のクリア機能
+
+### 操作・UI
+
+- タブレット操作に最適化した直感的なUI
+- タップによる部材選択機能
+- 簡単な表示コントロール（選択解除、一括表示クリアなど）
+- タッチ操作対応（ピンチズーム、スワイプ等）
+
+## 非機能要件
+
+### パフォーマンス
+
+- タブレットでもスムーズに動作すること（目標: 30FPS以上）
+- 中規模モデル（〜1万部材程度）でもストレスなく操作できること
+- 読み込み時間が許容範囲内であること（大規模モデルで1分以内）
+
+### 互換性
+
+- 主要なタブレット（iOS/Android）で動作すること
+- 一般的なモダンブラウザ（Chrome, Safari, Firefox, Edge）で動作すること
+
+### 使いやすさ
+
+- 建設現場での使用を考慮した大きな操作ボタン
+- 初心者でも直感的に操作できる単純な操作性
+- エラー発生時のわかりやすいフィードバック
+
+### 拡張性
+
+- 将来的な機能追加に対応できる基本設計
+- 設定やカスタマイズが可能な構造
+
+---
+---
+---
+---
+---
+---
+上記の簡易的な要件定義を踏まえて作成した方針ステップについて
+
+1. 環境構築
+1.1 プロジェクト初期化
+Node.js プロジェクトを作成し、npm（またはyarn）で管理を開始する。
+
+three.js、web-ifc、web-ifc-three（IFCLoader）を依存に追加する。
+
+npm install three web-ifc web-ifc-three
+AMDlab Tech Blog
+
+1.2 バンドラ設定
+Rollup や webpack などで ES モジュールをバンドル可能に設定。
+
+rollup.config.js を用意し、rollup -c で bundle.js を生成するようにする。
+AMDlab Tech Blog
+
+1.3 ローカルサーバー準備
+開発中は http-server や VSCode の Live Server でローカルホスティング。
+
+bash
+コピーする
+編集する
+npm install -g http-server
+npx http-server
+または VSCode 拡張 “Live Server” を利用​
+AMDlab Tech Blog
+。
+
+2. Three.js ベースのビューアー作成
+2.1 シーン／カメラ／レンダラー設定
+Scene、PerspectiveCamera、WebGLRenderer を生成し、<canvas> 要素に紐付ける。
+
+サイズ、ピクセル比を設定し、リサイズ時に再計算する。
+
+js
+コピーする
+編集する
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(75, width/height);
+const renderer = new THREE.WebGLRenderer({ canvas });
+renderer.setSize(width, height);
+renderer.setPixelRatio(window.devicePixelRatio);
+AMDlab Tech Blog
+
+2.2 ライトとグリッドの追加
+環境光 (AmbientLight) と指向性ライト (DirectionalLight) を配置。
+
+GridHelper や AxesHelper で軸やグリッドを表示し、デバッグしやすくする。
+AMDlab Tech Blog
+
+2.3 コントロール導入
+OrbitControls（three.js examples）で回転・パン・ズームを有効化。
+
+js
+コピーする
+編集する
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+AMDlab Tech Blog
+
+3. IFC ファイル読み込み機能実装
+3.1 IFCLoader の初期化
+IFCLoader をインポートし、WASM モジュールへのパスを設定。
+
+js
+コピーする
+編集する
+import { IFCLoader } from 'web-ifc-three/IFCLoader';
+const ifcLoader = new IFCLoader();
+ifcLoader.ifcManager.setWasmPath('wasm/');
+AMDlab Tech Blog
+
+3.2 ファイル入力からの読み込み
+<input type="file"> またはドラッグ＆ドロップで取得した IFC ファイルを URL.createObjectURL でロード。
+
+ifcLoader.load(ifcURL, callback) で読み込み、scene.add(ifcModel.mesh) する。
+AMDlab Tech Blog
+
+4. インタラクション実装
+4.1 オブジェクト選択
+Raycaster とマウス座標を使い、3D オブジェクトの交差判定を行う。
+
+js
+コピーする
+編集する
+raycaster.setFromCamera(mouse, camera);
+const found = raycaster.intersectObjects(ifcModels)[0];
+AMDlab Tech Blog
+
+4.2 ExpressID の取得
+交差したジオメトリと faceIndex から ifcManager.getExpressId(geometry, index) で IFC エンティティ ID を取得。
+
+js
+コピーする
+編集する
+const id = ifcLoader.ifcManager.getExpressId(geometry, index);
+AMDlab Tech Blog
+
+4.3 ハイライト（サブセット生成）
+ifcManager.createSubset({ modelID, ids, material, scene, removePrevious: true }) で選択オブジェクトを半透明ハイライト。
+
+マウスホバー／ダブルクリックで異なるマテリアルを使い分ける。
+AMDlab Tech Blog
+
+4.4 情報表示 UI
+選択時に React／Svelte コンポーネント上に部材名・製品名をオーバーレイ表示。
+
+カメラ操作後も情報を維持するため、レンダーループ外の HTML レイヤーで管理。
+Zenn
+
+5. ビルド＆デプロイ
+Rollup で bundle.js を生成（rollup -c）。
+
+ローカルサーバーで動作確認後、静的ホスティング（Vercel, Netlify など）に配置。
+AMDlab Tech Blog
+
+6. パフォーマンス最適化
+6.1 BVH で高速レイトレース
+three-mesh-bvh をセットアップし、ifcManager.setupThreeMeshBVH(...) でレイトレース高速化。
+STUDIO TAMA
+
+6.2 ローディングプログレス表示
+ifcManager.setOnProgress((event) => { ratio = event.loaded/event.total; }) でプログレスバーを制御。
+STUDIO TAMA
+
+7. フレームワーク統合・拡張
+7.1 Svelte 連携例
+Svelte コンポーネントで Three.js シーンを管理し、setContext/getContext で状態共有。
+Zenn
+
+7.2 React Three Fiber 連携例
+<Canvas> 内で IFC モデルを <primitive object={model} /> として描画し、Chakra UI 等で情報表示。
+STUDIO TAMA
+
+8. 追加拡張案
+IFC データ構造をノード・エッジで可視化するグラフビューアー機能（IFC プロパティ間のリレーション表示など）を検討​
+Zenn
+。
+
+将来的には web-ifc-viewer コンポーネントへの置き換えや、モバイル最適化（タッチ UI 強化）を実施。
+
+
