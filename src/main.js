@@ -58,7 +58,7 @@ const ifcLoader = new IFCLoader();
 ifcLoader.ifcManager.setWasmPath('wasm/');
 
 // === 10. IFCファイルの読み込み ===
-const ifcPath = 'public/ifc/20250403_支持架台追加・変更要望図.ifc';
+const ifcPath = 'ifc/20250403_支持架台追加・変更要望図.ifc';
 loadIFCModel(ifcLoader, ifcPath, scene);
 
 // === これ以降は立方体の作成をしているだけ ===
