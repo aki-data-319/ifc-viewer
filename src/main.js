@@ -1,12 +1,13 @@
 // src/main.js
 import * as THREE from 'three';
 import { createCube } from './cube';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { createCamera } from './camera';
 import { createLights } from './lights';
 import { createHelpers } from './helpers';
 import { createControls } from './controls';
 import { createRenderer } from './renderer';
+import { IFCLoader } from 'web-ifc-three/IFCLoader';
+import { loadIFCModel } from './ifcLoaderUtil';
 
 // === 1. Canvas取得 ===
 const canvas = document.getElementById('three-canvas');
@@ -31,16 +32,16 @@ const sizes = {
 const camera = createCamera(sizes);
 scene.add(camera);
 
-// === 7. レンダラー生成 ===
+// === 6. レンダラー生成 ===
 const renderer = createRenderer(canvas, sizes);
 window.renderer = renderer;
 
-// === 6. コントロール生成 ===
+// === 7. コントロール生成 ===
 const controls = createControls(camera, renderer.domElement);
 
 renderer.render(scene, camera);
 
-// === 7. リサイズ対応 ===
+// === 8. リサイズ対応 ===
 window.addEventListener('resize', () => {
   sizes.width = window.innerWidth;
   sizes.height = window.innerHeight;
@@ -51,6 +52,14 @@ window.addEventListener('resize', () => {
   renderer.setSize(sizes.width, sizes.height);
   renderer.setPixelRatio(window.devicePixelRatio);
 });
+
+// === 9. IFCLoaderの初期化 ===
+const ifcLoader = new IFCLoader();
+ifcLoader.ifcManager.setWasmPath('wasm/');
+
+// === 10. IFCファイルの読み込み ===
+const ifcPath = 'public/ifc/20250403_支持架台追加・変更要望図.ifc';
+loadIFCModel(ifcLoader, ifcPath, scene);
 
 // === これ以降は立方体の作成をしているだけ ===
 const cube = createCube();
@@ -66,3 +75,4 @@ function animate() {
   renderer.render(scene, camera);
 }
 animate();
+
