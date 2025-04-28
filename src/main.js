@@ -2,6 +2,11 @@
 import * as THREE from 'three';
 import { createCube } from './cube';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { createCamera } from './camera';
+import { createLights } from './lights';
+import { createHelpers } from './helpers';
+import { createControls } from './controls';
+import { createRenderer } from './renderer';
 
 // === 1. Canvas取得 ===
 const canvas = document.getElementById('three-canvas');
@@ -12,42 +17,26 @@ const scene = new THREE.Scene();
 window.scene = scene;
 scene.background = new THREE.Color(0xeeeeee);
 
+// === 3. ライト生成＆追加 ===
+createLights().forEach(light => scene.add(light));
 
-// === 3. AmbientLight作成＆追加 ===
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
-scene.add(ambientLight);
-
-// === 4. グリッドヘルパー作成＆追加 ===
-const gridHelper = new THREE.GridHelper(10, 10);
-scene.add(gridHelper);
-
-// === 4-1. 座標軸作成＆追加 ===
-const axesHelper = new THREE.AxesHelper(10);
-scene.add(axesHelper);
-
-
+// === 4. ヘルパー生成＆追加 ===
+createHelpers().forEach(helper => scene.add(helper));
 
 // === 5. カメラ作成 ===
 const sizes = {
   width: window.innerWidth,
   height: window.innerHeight
 };
-// カメラを斜め上から原点を見る位置に配置
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000);
-camera.position.set(10, 10, 20); // X=0, Y=0, Z=5
-camera.lookAt(0, 0, 0); // 必ず原点を向かせる
+const camera = createCamera(sizes);
 scene.add(camera);
 
-// === 6. レンダラー作成 ===
-const renderer = new THREE.WebGLRenderer({ canvas });
-renderer.setSize(sizes.width, sizes.height);
-renderer.setPixelRatio(window.devicePixelRatio);
-// ②-1 デバッグ用に window にぶら下げる
+// === 7. レンダラー生成 ===
+const renderer = createRenderer(canvas, sizes);
 window.renderer = renderer;
 
-// OrbitControlsを初期化する。カメラとcanvasを渡して。カメラを回転・ズーム・パンできるようにするツール
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true; // 慣性効果を有効化
+// === 6. コントロール生成 ===
+const controls = createControls(camera, renderer.domElement);
 
 renderer.render(scene, camera);
 
