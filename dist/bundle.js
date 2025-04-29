@@ -34317,7 +34317,6 @@ class IFCLoader extends Loader {
  * @param {THREE.Scene} scene
  */
 
-
 /**
  * IFCファイルを読み込んでシーンに追加するユーティリティ
  * Promise を返し、呼び出し元でエラーを捕捉できるように
@@ -34327,44 +34326,27 @@ function loadIFCModel(ifcLoader, url, scene) {
     ifcLoader.load(
       url,
       (ifcModel) => {
-        scene.add(ifcModel.mesh);
-        resolve(ifcModel);
+        try {
+          if (!ifcModel || !ifcModel.mesh) {
+            throw new Error('ロード結果にmeshが存在しません');
+          }
+          scene.add(ifcModel.mesh);
+          resolve(ifcModel);
+        } catch (error) {
+          reject(error);
+        }
       },
       (event) => {
         const pct = (event.loaded / event.total) * 100;
         console.log(`読み込み進行中: ${pct.toFixed(2)}%`);
       },
       (error) => {
-        reject(error);
+        console.error('🔴 load中にエラー発生', error);
+        reject(new Error(`IFCLoader.load失敗: ${error.message || error}`));
       }
     );
   });
 }
-
-//下は過去のやつ
-
-/*
-export function loadIFCModel(ifcLoader, url, scene) {
-  ifcLoader.load(
-    url,
-    (ifcModel) => {
-      scene.add(ifcModel.mesh);
-      resolve(ifcModel);
-      console.log('IFCモデルの読み込みに成功しました');
-    },
-    (event) => {
-      // 読み込み進捗
-      const percent = (event.loaded / event.total) * 100;
-      console.log(`読み込み進行中: ${percent.toFixed(2)}%`);
-    },
-    (error) => {
-      console.error('IFCモデルの読み込みに失敗しました', error);
-      reject(error);
-    }
-  );
-}
-
-*/
 
 // src/main.js
 
@@ -34447,20 +34429,105 @@ window.addEventListener('resize', () => {
 
 // === 9. IFCLoaderの初期化 ===
 const ifcLoader = new IFCLoader();
-ifcLoader.ifcManager.setWasmPath('wasm/');
 
-console.log('▶ IfcLoader initialized, wasmPath =', 'wasm/');
-
-// === 10. IFCファイルの読み込み ===
-// ─── IFCモデルの読み込み ─────────────────────────
-async function initIFC() {
+// WASMの読み込みを遅延させるため、初期化を明示的に行う
+async function initLoader() {
+  console.log('🚀 IFCLoader初期化開始...');
   try {
-    await loadIFCModel(ifcLoader, 'ifc/test.ifc', scene);
-    console.log('✅ IFCモデルの読み込みに成功しました');
+    // 絶対パスでWASMファイルのパスを設定
+    const absoluteWasmPath = window.location.origin + '/wasm/';
+    console.log('📂 WASMパスを設定:', absoluteWasmPath);
+    ifcLoader.ifcManager.setWasmPath(absoluteWasmPath);
+    
+    // 手動でIFCParserを初期化
+    console.log('🔧 手動でIFCParserを初期化しています...');
+    
+    // ここで直接IFCParserを作成して初期化
+    if (ifcLoader.ifcManager.parser && !ifcLoader.ifcManager.parser.ifcAPI) {
+      console.log('🔄 IFCParserを手動で構築中...');
+      
+      // IFCAPIのインポートを試みる
+      try {
+        // web-ifc-api.jsのパスを指定
+        const wasmJSPath = absoluteWasmPath + 'web-ifc-api.js';
+        console.log('📁 web-ifc-api.jsのロード:', wasmJSPath);
+        
+        // スクリプトを動的に読み込む
+        await new Promise((resolve, reject) => {
+          const script = document.createElement('script');
+          script.src = wasmJSPath;
+          script.async = true;
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+        });
+        
+        console.log('✅ web-ifc-api.jsのロード完了');
+        
+        // グローバルオブジェクトにIFCAPIがあるか確認
+        if (window.IfcAPI) {
+          console.log('🔍 IfcAPIクラスを検出しました');
+          
+          // IFCAPIインスタンスを作成
+          const ifcAPI = new window.IfcAPI();
+          console.log('🔧 IfcAPIインスタンスを作成しました');
+          
+          // WASMのパスを設定
+          ifcAPI.SetWasmPath(absoluteWasmPath);
+          console.log('📂 IfcAPIインスタンスにWASMパスを設定しました');
+          
+          // 初期化を実行
+          await ifcAPI.Init();
+          console.log('✅ IfcAPI初期化完了');
+          
+          // IFCParserにAPIを設定
+          ifcLoader.ifcManager.parser.ifcAPI = ifcAPI;
+          console.log('✅ IFCParserにIfcAPIを設定しました');
+          
+          return true;
+        } else {
+          console.error('❌ IfcAPIクラスが見つかりません');
+          return false;
+        }
+      } catch (scriptError) {
+        console.error('🔴 web-ifc-api.jsの読み込みエラー:', scriptError);
+        return false;
+      }
+    } else if (ifcLoader.ifcManager.parser && ifcLoader.ifcManager.parser.ifcAPI) {
+      console.log('✅ ifcAPIは既に存在します');
+      return true;
+    } else {
+      console.error('🔴 IFCParserが見つかりません');
+      return false;
+    }
   } catch (e) {
-    console.error('🔴 IFCモデルの読み込みに失敗しました', e);
+    console.error('🔴 IFCLoader初期化エラー:', e);
+    return false;
   }
 }
+
+// === 10. IFCファイルの読み込み ===
+async function initIFC() {
+  try {
+    // ローダーの初期化を待機
+    const initSuccess = await initLoader();
+    
+    if (!initSuccess) {
+      console.error('🔴 IFCLoader初期化に失敗したため、モデル読み込みをスキップします');
+      return null;
+    }
+    
+    console.log('🔍 IFCファイル読み込み開始...');
+    const model = await loadIFCModel(ifcLoader, 'ifc/test.ifc', scene);
+    console.log('✅ IFCモデルの読み込みに成功しました', model);
+  } catch (e) {
+    console.error('🔴 IFCモデルの読み込みに失敗しました');
+    console.error('エラー詳細:', e);
+    alert(`IFCモデル読み込み失敗\n${e.message || e}`);
+  }
+}
+
+// 初期化と読み込みを実行
 initIFC();
 
 // === これ以降は立方体の作成をしているだけ ===

@@ -88,18 +88,26 @@ window.addEventListener('resize', () => {
 
 // === 9. IFCLoaderの初期化 ===
 const ifcLoader = new IFCLoader();
+// WASMパスを設定（相対パスで問題ないはず）
 ifcLoader.ifcManager.setWasmPath('wasm/');
 
 console.log('▶ IfcLoader initialized, wasmPath =', 'wasm/');
 
 // === 10. IFCファイルの読み込み ===
-// ─── IFCモデルの読み込み ─────────────────────────
 async function initIFC() {
   try {
-    await loadIFCModel(ifcLoader, 'ifc/test.ifc', scene);
-    console.log('✅ IFCモデルの読み込みに成功しました');
+    console.log('🔍 IFCファイル読み込み開始...');
+    const model = await loadIFCModel(ifcLoader, 'ifc/test.ifc', scene);
+    console.log('✅ IFCモデルの読み込みに成功しました', model);
   } catch (e) {
-    console.error('🔴 IFCモデルの読み込みに失敗しました', e);
+    console.error('🔴 IFCモデルの読み込みに失敗しました');
+    console.error('エラー詳細:', e);
+    
+    // エラーの種類を判別
+    if (e.toString().includes('ba is not a function')) {
+      console.error('💡 WASMエクスポート関数の不一致が発生しています。');
+      console.error('   WASMファイルとJSファイルのバージョンが一致していない可能性があります。');
+    }
   }
 }
 initIFC();
