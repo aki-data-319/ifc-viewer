@@ -12,6 +12,14 @@
 <body>
   <!-- canvas  -->
   <canvas id="three-canvas"></canvas>
+  <!-- IFC Loaderがimport web-ifcするときに、実際は手元にコピーしたファイルを読み込むようにする部分 -->
+  <script type="importmap">
+    {
+      "imports": {
+        "web-ifc": "./wasm/web-ifc-api.js"
+      }
+    }
+  </script>
   <!-- bundle.js は rollup によって生成されたファイル -->
   <script type="module" src="bundle.js"></script>
 </body>
