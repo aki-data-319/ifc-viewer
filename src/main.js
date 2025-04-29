@@ -12,7 +12,33 @@ import { loadIFCModel } from './ifcLoaderUtil';
 
 
 
+// ─── グローバルエラーハンドリング ─────────────────────
+window.addEventListener('error', ev => {
+  console.error('🔴 Uncaught Error:', ev.error || ev.message, {
+    file: ev.filename, line: ev.lineno, col: ev.colno
+  });
+});
+window.addEventListener('unhandledrejection', ev => {
+  console.error('🔴 Unhandled Promise Rejection:', ev.reason);
+});
 
+// ─── wasm エクスポートをデバッグ ──────────────────────
+async function debugWasmExports() {
+  try {
+    const resp = await fetch('wasm/web-ifc.wasm');
+    const buf  = await resp.arrayBuffer();
+    const mod  = await WebAssembly.compile(buf);
+    const infos = WebAssembly.Module.exports(mod);
+    // name と kind の両方を出力
+    console.log(
+      '🔍 wasm export names+kind:',
+      infos.map(e => `${e.name} (${e.kind})`)
+    );
+  } catch (e) {
+    console.error('⚠️ wasm export debug failed:', e);
+  }
+}
+debugWasmExports();
 
 
 
@@ -64,9 +90,19 @@ window.addEventListener('resize', () => {
 const ifcLoader = new IFCLoader();
 ifcLoader.ifcManager.setWasmPath('wasm/');
 
+console.log('▶ IfcLoader initialized, wasmPath =', 'wasm/');
+
 // === 10. IFCファイルの読み込み ===
-const ifcPath = 'ifc/20250403_支持架台追加・変更要望図.ifc';
-loadIFCModel(ifcLoader, ifcPath, scene);
+// ─── IFCモデルの読み込み ─────────────────────────
+async function initIFC() {
+  try {
+    await loadIFCModel(ifcLoader, 'ifc/test.ifc', scene);
+    console.log('✅ IFCモデルの読み込みに成功しました');
+  } catch (e) {
+    console.error('🔴 IFCモデルの読み込みに失敗しました', e);
+  }
+}
+initIFC();
 
 // === これ以降は立方体の作成をしているだけ ===
 const cube = createCube();
