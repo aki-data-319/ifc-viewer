@@ -16,6 +16,7 @@
     "web-ifc-three": "^0.0.126"
   },
   "devDependencies": {
+    "@rollup/plugin-alias": "^5.1.1",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "rollup": "^4.40.0",
     "rollup-plugin-copy": "^3.5.0"

@@ -9,6 +9,13 @@ import { createRenderer } from './renderer';
 import { IFCLoader } from 'web-ifc-three/IFCLoader';
 import { loadIFCModel } from './ifcLoaderUtil';
 
+
+
+
+
+
+
+
 // === 1. Canvas取得 ===
 const canvas = document.getElementById('three-canvas');
 
